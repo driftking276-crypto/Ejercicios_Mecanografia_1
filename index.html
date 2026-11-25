@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NEONTYPE // EdClub Arcade Trainer - Fase 1 (Nota /10)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-void: #05050a;
+      --bg-panel: #0b0d17;
+      --neon-cyan: #00f3ff;
+      --neon-magenta: #ff00ff;
+      --neon-green: #39ff14;
+      --neon-purple: #b026ff;
+      --neon-red: #ff2a55;
+      --neon-yellow: #ffe600;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-void);
+      color: #e2e8f0;
+      font-family: 'JetBrains Mono', monospace;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    .font-arcade {
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    /* Cyber Grid Background */
+    .cyber-grid {
+      background-size: 40px 40px;
+      background-image: 
+        linear-gradient(to right, rgba(0, 243, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(176, 38, 255, 0.05) 1px, transparent 1px);
+    }
+
+    /* Neon Glow Utilities */
+    .glow-cyan {
+      box-shadow: 0 0 12px rgba(0, 243, 255, 0.4), inset 0 0 8px rgba(0, 243, 255, 0.15);
+      border-color: var(--neon-cyan);
+    }
+    .text-glow-cyan {
+      color: var(--neon-cyan);
+      text-shadow: 0 0 10px rgba(0, 243, 255, 0.8);
+    }
+    .glow-magenta {
+      box-shadow: 0 0 15px rgba(255, 0, 255, 0.45), inset 0 0 8px rgba(255, 0, 255, 0.15);
+      border-color: var(--neon-magenta);
+    }
+    .text-glow-magenta {
+      color: var(--neon-magenta);
+      text-shadow: 0 0 10px rgba(255, 0, 255, 0.8);
+    }
+    .glow-green {
+      box-shadow: 0 0 14px rgba(57, 255, 20, 0.45), inset 0 0 8px rgba(57, 255, 20, 0.15);
+      border-color: var(--neon-green);
+    }
+    .text-glow-green {
+      color: var(--neon-green);
+      text-shadow: 0 0 10px rgba(57, 255, 20, 0.8);
+    }
+    .text-glow-yellow {
+      color: var(--neon-yellow);
+      text-shadow: 0 0 10px rgba(255, 230, 0, 0.8);
+    }
+
+    /* Arcade Button Style */
+    .btn-arcade {
+      position: relative;
+      transition: all 0.15s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .btn-arcade:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.2);
+    }
+    .btn-arcade:active {
+      transform: translateY(1px);
+    }
+
+    /* Typing Prompt Characters */
+    .char-box {
+      display: inline-block;
+      padding: 2px 1px;
+      border-radius: 4px;
+      transition: background-color 0.08s, color 0.08s, transform 0.08s;
+      white-space: pre;
+    }
+    .char-pending {
+      color: #64748b;
+    }
+    .char-current {
+      color: #05050a;
+      background-color: var(--neon-cyan);
+      box-shadow: 0 0 14px var(--neon-cyan);
+      font-weight: 800;
+      animation: pulseCursor 0.9s infinite alternate;
+    }
+    .char-correct {
+      color: var(--neon-green);
+      text-shadow: 0 0 6px rgba(57, 255, 20, 0.5);
+    }
+    .char-wrong {
+      color: #ffffff;
+      background-color: var(--neon-red);
+      box-shadow: 0 0 10px var(--neon-red);
+      text-decoration: underline;
+    }
+
+    @keyframes pulseCursor {
+      from { transform: scale(1); box-shadow: 0 0 8px var(--neon-cyan); }
+      to { transform: scale(1.06); box-shadow: 0 0 18px var(--neon-cyan); }
+    }
+
+    /* Screen Shake on Error */
+    @keyframes screenShake {
+      0%, 100% { transform: translate(0, 0); }
+      20% { transform: translate(-6px, 3px); }
+      40% { transform: translate(6px, -3px); }
+      60% { transform: translate(-4px, -2px); }
+      80% { transform: translate(4px, 2px); }
+    }
+    .shake-error {
+      animation: screenShake 0.25s cubic-bezier(.36,.07,.19,.97) both;
+      border-color: var(--neon-red) !important;
+      box-shadow: 0 0 25px rgba(255, 42, 85, 0.6) !important;
+    }
+
+    /* Virtual Keyboard Keys */
+    .kbd-key {
+      background: #0f1322;
+      border: 1px solid #262f4d;
+      color: #94a3b8;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      transition: all 0.08s ease;
+      box-shadow: 0 4px 0 #070912;
+      position: relative;
+    }
+    .kbd-key.target-key {
+      background: rgba(0, 243, 255, 0.18);
+      border-color: var(--neon-cyan);
+      color: #ffffff;
+      box-shadow: 0 0 16px rgba(0, 243, 255, 0.65), 0 4px 0 #007a80;
+      transform: translateY(-2px);
+    }
+    .kbd-key.hit-correct {
+      background: var(--neon-green) !important;
+      color: #05050a !important;
+      border-color: var(--neon-green) !important;
+      box-shadow: 0 0 20px var(--neon-green) !important;
+      transform: translateY(2px);
+    }
+    .kbd-key.hit-wrong {
+      background: var(--neon-red) !important;
+      color: #ffffff !important;
+      border-color: var(--neon-red) !important;
+      box-shadow: 0 0 20px var(--neon-red) !important;
+      transform: translateY(2px);
+    }
+
+    /* Finger Zone Subtle Bottom Indicator */
+    .finger-pinky-l { border-bottom: 3px solid #ff00ff; }
+    .finger-ring-l { border-bottom: 3px solid #b026ff; }
+    .finger-mid-l { border-bottom: 3px solid #00f3ff; }
+    .finger-idx-l { border-bottom: 3px solid #39ff14; }
+    .finger-idx-r { border-bottom: 3px solid #ffe600; }
+    .finger-mid-r { border-bottom: 3px solid #00f3ff; }
+    .finger-ring-r { border-bottom: 3px solid #b026ff; }
+    .finger-pinky-r { border-bottom: 3px solid #ff00ff; }
+    .finger-thumb { border-bottom: 3px solid #94a3b8; }
+
+    /* Particle Canvas */
+    #particleCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 50;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #05050a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--neon-cyan);
+    }
+  </style>
+</head>
+<body class="cyber-grid flex flex-col justify-between min-h-screen">
+
+  <!-- Particle Effects Overlay -->
+  <canvas id="particleCanvas"></canvas>
+
+  <!-- Hidden Input for Mobile / Universal Keystroke Capture -->
+  <input 
+    type="text" 
+    id="hiddenMobileInput" 
+    autocomplete="off" 
+    autocorrect="off" 
+    autocapitalize="off" 
+    spellcheck="false" 
+    class="opacity-0 fixed -top-96 left-0 pointer-events-none"
+    aria-label="Entrada de teclado"
+  />
+
+  <!-- TOP ARCADE HUD HEADER -->
+  <header class="w-full border-b border-cyan-500/30 bg-[#080a12]/90 backdrop-blur-md sticky top-0 z-30 px-3 sm:px-6 py-3">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Brand / Course Title -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-400 flex items-center justify-center glow-cyan">
+          <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="2" y="6" width="20" height="12" rx="2" />
+            <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-arcade font-black text-base sm:text-xl tracking-wider text-glow-cyan">
+              NEONTYPE <span class="text-fuchsia-500">ARCADE</span>
+            </h1>
+            <span class="hidden md:inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-fuchsia-500/20 border border-fuchsia-500/50 text-fuchsia-300">
+              CURSO 3 • LECCIÓN 137 • FASE 1
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400">Ejercicio de Fila Guía • Calificación /10</p>
+        </div>
+      </div>
+
+      <!-- LIVE HUD METRICS -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 w-full lg:w-auto">
+        
+        <!-- Grade /10 -->
+        <div class="bg-[#0d101d] border border-fuchsia-500/50 rounded-xl px-3 py-1.5 text-center glow-magenta">
+          <div class="text-[10px] uppercase tracking-wider text-fuchsia-300/80">Nota Actual</div>
+          <div class="font-arcade text-lg sm:text-xl font-black text-glow-magenta">
+            <span id="hudGrade">10.00</span><span class="text-xs text-slate-400">/10</span>
+          </div>
+        </div>
+
+        <!-- WPM -->
+        <div class="bg-[#0d101d] border border-emerald-500/40 rounded-xl px-3 py-1.5 text-center">
+          <div class="text-[10px] uppercase tracking-wider text-emerald-300/80">Velocidad</div>
+          <div class="font-arcade text-lg sm:text-xl font-black text-glow-green">
+            <span id="hudWpm">0</span> <span class="text-xs font-normal text-slate-400">PPM</span>
+          </div>
+        </div>
+
+        <!-- Accuracy -->
+        <div class="bg-[#0d101d] border border-purple-500/40 rounded-xl px-3 py-1.5 text-center">
+          <div class="text-[10px] uppercase tracking-wider text-purple-300/80">Precisión</div>
+          <div id="hudAccuracy" class="font-arcade text-lg sm:text-xl font-black text-purple-300">100%</div>
+        </div>
+
+        <!-- Streak / Combo -->
+        <div class="bg-[#0d101d] border border-yellow-500/40 rounded-xl px-3 py-1.5 text-center">
+          <div class="text-[10px] uppercase tracking-wider text-yellow-300/80">Racha</div>
+          <div class="font-arcade text-lg sm:text-xl font-black text-glow-yellow">
+            <span id="hudCombo">0</span>x
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Action Controls -->
+      <div class="flex items-center gap-2">
+        <button id="btnCustomText" title="Pegar texto personalizado de la lección" class="btn-arcade px-3 py-2 rounded-xl bg-purple-950/60 border border-purple-500/60 text-purple-200 text-xs font-bold hover:bg-purple-900/60">
+          Texto Propio
+        </button>
+        <button id="btnSound" title="Activar/Silenciar Audio Arcade" class="btn-arcade p-2 rounded-xl bg-slate-900 border border-cyan-500/40 text-cyan-300">
+          <svg id="iconSoundOn" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 010 7.07M19.07 4.93a10 10 0 010 14.14" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <svg id="iconSoundOff" class="w-5 h-5 hidden text-rose-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button id="btnFinish" class="btn-arcade px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-purple-600 border border-fuchsia-400 text-white text-xs font-bold shadow-lg shadow-fuchsia-600/30">
+          Calificar Ahora
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- MAIN GAME ARENA -->
+  <main class="flex-1 w-full max-w-6xl mx-auto px-3 sm:px-6 py-4 flex flex-col justify-center gap-4">
+
+    <!-- Stage & Progress Bar -->
+    <div class="bg-[#0b0d17]/90 border border-slate-800 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-3 w-full sm:w-auto">
+        <span id="stageBadge" class="font-arcade text-xs font-black px-3 py-1 rounded-lg bg-cyan-500/20 border border-cyan-400 text-cyan-300">
+          FASE 1 • ÚNICA
+        </span>
+        <div>
+          <h2 id="stageTitle" class="text-sm sm:text-base font-bold text-white">Fase 1: Calentamiento y Fila Guía (EdClub 137)</h2>
+          <p id="stageSubtitle" class="text-xs text-slate-400">Mantén tus dedos índice en F y J. Completa todos los bloques para recibir tu nota /10.</p>
+        </div>
+      </div>
+
+      <!-- Quick Controls -->
+      <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+        <button id="btnPause" class="btn-arcade px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 text-xs font-bold hover:border-cyan-400">
+          Pausar
+        </button>
+      </div>
+    </div>
+
+    <!-- Exercise Completion Progress Track -->
+    <div class="w-full bg-slate-900/90 h-2.5 rounded-full overflow-hidden border border-slate-800 p-0.5">
+      <div id="sessionProgressBar" class="h-full rounded-full bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-emerald-400 transition-all duration-300" style="width: 0%;"></div>
+    </div>
+
+    <!-- TYPING TELEPROMPTER ARENA -->
+    <div id="typingArena" tabindex="0" class="relative bg-[#090b14] border-2 border-cyan-500/50 rounded-2xl p-5 sm:p-8 glow-cyan transition-all cursor-text focus:outline-none">
+      
+      <!-- Start Overlay Prompt (Before first keystroke) -->
+      <div id="startOverlay" class="absolute inset-0 bg-[#05050a]/85 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center z-20 p-4 text-center">
+        <div class="inline-block px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/50 text-cyan-300 text-xs font-bold mb-3 animate-bounce">
+          LISTO PARA INICIAR LA FASE 1 • FILA GUÍA
+        </div>
+        <h3 class="font-arcade text-xl sm:text-3xl font-black text-white mb-2">
+          PRESIONA <span class="text-glow-cyan">CUALQUIER TECLA</span> O HAZ CLIC AQUÍ
+        </h3>
+        <p class="text-xs sm:text-sm text-slate-300 max-w-xl mb-5">
+          Completa los 5 bloques de calentamiento de la <strong class="text-cyan-300">Fase 1 (asdf jklñ)</strong> sin límite de tiempo. Tu calificación sobre <strong class="text-fuchsia-400">10.00 puntos</strong> se calcula en tiempo real (60% Precisión + 40% Velocidad).
+        </p>
+        <button id="btnStartTrigger" class="btn-arcade px-6 py-3 rounded-xl bg-cyan-500 text-slate-950 font-arcade font-black text-sm shadow-lg shadow-cyan-500/40">
+          INICIAR FASE 1 AHORA
+        </button>
+      </div>
+
+      <!-- Pause Overlay -->
+      <div id="pauseOverlay" class="hidden absolute inset-0 bg-[#05050a]/90 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center z-20 p-4 text-center">
+        <h3 class="font-arcade text-2xl sm:text-3xl font-black text-glow-yellow mb-2">JUEGO EN PAUSA</h3>
+        <p class="text-sm text-slate-300 mb-5">Tu progreso de la Fase 1 está guardado.</p>
+        <button id="btnResume" class="btn-arcade px-6 py-3 rounded-xl bg-emerald-400 text-slate-950 font-arcade font-black text-sm shadow-lg shadow-emerald-400/40">
+          CONTINUAR ENTRENAMIENTO
+        </button>
+      </div>
+
+      <!-- Next Key & Finger Hint Banner -->
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-800/80 text-xs">
+        <div class="flex items-center gap-2">
+          <span class="text-slate-400">Siguiente tecla:</span>
+          <span id="nextKeyBadge" class="font-arcade font-bold px-2.5 py-0.5 rounded bg-cyan-500/20 border border-cyan-400 text-cyan-300">
+            A
+          </span>
+          <span id="fingerHintText" class="text-slate-400 hidden sm:inline">• Dedo meñique izquierdo</span>
+        </div>
+        <div class="flex items-center gap-4 text-slate-400">
+          <span>Bloque: <strong id="blockCounter" class="text-white">1 / 5</strong></span>
+          <span>Errores: <strong id="errorCounter" class="text-rose-400">0</strong></span>
+          <span>Pulsaciones: <strong id="totalCharsCounter" class="text-emerald-400">0</strong></span>
+        </div>
+      </div>
+
+      <!-- Text Display Box -->
+      <div id="textDisplay" class="text-lg sm:text-2xl md:text-[26px] leading-relaxed tracking-wide font-semibold min-h-[135px] sm:min-h-[155px] flex flex-wrap content-start select-none break-words">
+        <!-- Characters injected dynamically by JS -->
+      </div>
+
+    </div>
+
+    <!-- VISUAL INTERACTIVE SPANISH QWERTY KEYBOARD -->
+    <div class="bg-[#080a12]/95 border border-slate-800/90 rounded-2xl p-2 sm:p-4 shadow-2xl">
+      <div id="virtualKeyboard" class="flex flex-col gap-1.5 sm:gap-2 max-w-4xl mx-auto">
+        <!-- Keyboard rows rendered dynamically -->
+      </div>
+
+      <!-- Finger Color Legend -->
+      <div class="mt-3 pt-2 border-t border-slate-800/70 flex flex-wrap items-center justify-center gap-3 sm:gap-5 text-[10px] sm:text-xs text-slate-400">
+        <span class="flex items-center gap-1.5"><i class="w-3 h-1.5 rounded bg-[#ff00ff] inline-block"></i> Meñique</span>
+        <span class="flex items-center gap-1.5"><i class="w-3 h-1.5 rounded bg-[#b026ff] inline-block"></i> Anular</span>
+        <span class="flex items-center gap-1.5"><i class="w-3 h-1.5 rounded bg-[#00f3ff] inline-block"></i> Medio</span>
+        <span class="flex items-center gap-1.5"><i class="w-3 h-1.5 rounded bg-[#39ff14] inline-block"></i> Índice Izq.</span>
+        <span class="flex items-center gap-1.5"><i class="w-3 h-1.5 rounded bg-[#ffe600] inline-block"></i> Índice Der.</span>
+        <span class="flex items-center gap-1.5"><i class="w-3 h-1.5 rounded bg-[#94a3b8] inline-block"></i> Pulgar (Espacio)</span>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- CUSTOM TEXT MODAL -->
+  <div id="customTextModal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="bg-[#0b0d17] border-2 border-purple-500 rounded-2xl max-w-xl w-full p-6 glow-magenta">
+      <h3 class="font-arcade text-lg sm:text-xl font-black text-white mb-2">CARGAR TEXTO DE LECCIÓN EDCLUB</h3>
+      <p class="text-xs text-slate-300 mb-4">
+        Si copiaste un texto puntual de tu lección 137 en EdClub, pégalo aquí abajo para practicarlo y obtener tu calificación sobre 10.
+      </p>
+      <textarea id="customTextInput" rows="5" placeholder="Pega aquí el texto o párrafos que deseas practicar..." class="w-full bg-[#05050a] border border-slate-700 focus:border-cyan-400 rounded-xl p-3 text-sm text-white focus:outline-none mb-4"></textarea>
+      <div class="flex justify-end gap-3">
+        <button id="btnCancelCustom" class="btn-arcade px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold">Cancelar</button>
+        <button id="btnApplyCustom" class="btn-arcade px-5 py-2 rounded-xl bg-cyan-500 text-slate-950 text-xs font-black">Usar Este Texto</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FINAL RESULTS / GRADE /10 MODAL -->
+  <div id="resultsModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-lg z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-[#0b0d17] border-2 border-cyan-400 rounded-3xl max-w-2xl w-full p-6 sm:p-8 glow-cyan text-center relative my-auto">
+      
+      <div class="inline-block px-3 py-1 rounded-full bg-fuchsia-500/20 border border-fuchsia-400 text-fuchsia-300 text-xs font-bold mb-2">
+        REPORTE OFICIAL • FASE 1 COMPLETADA (LECCIÓN 137)
+      </div>
+      
+      <h2 class="font-arcade text-2xl sm:text-4xl font-black text-white mb-6">
+        RESULTADOS DE <span class="text-glow-cyan">FASE 1</span>
+      </h2>
+
+      <!-- Main Grade & Rank Showcase -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div class="bg-[#05050a] border border-fuchsia-500/60 rounded-2xl p-5 glow-magenta flex flex-col items-center justify-center">
+          <span class="text-xs uppercase tracking-widest text-fuchsia-300 mb-1">Calificación Final</span>
+          <div class="font-arcade text-4xl sm:text-5xl font-black text-glow-magenta">
+            <span id="finalGradeValue">0.00</span><span class="text-xl text-slate-400">/10</span>
+          </div>
+          <span id="finalPassBadge" class="mt-2 px-3 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400">
+            APROBADO
+          </span>
+        </div>
+
+        <div class="bg-[#05050a] border border-cyan-500/60 rounded-2xl p-5 glow-cyan flex flex-col items-center justify-center">
+          <span class="text-xs uppercase tracking-widest text-cyan-300 mb-1">Rango Arcade</span>
+          <div id="finalRankLetter" class="font-arcade text-5xl sm:text-6xl font-black text-glow-cyan">
+            S
+          </div>
+          <span id="finalRankTitle" class="mt-1 text-xs text-slate-300 font-semibold">
+            Maestro Cibernético
+          </span>
+        </div>
+      </div>
+
+      <!-- Detailed Metrics Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 text-left">
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3">
+          <div class="text-[11px] text-slate-400">Velocidad Media</div>
+          <div id="finalWpm" class="font-arcade text-lg font-bold text-emerald-400">0 PPM</div>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3">
+          <div class="text-[11px] text-slate-400">Precisión Total</div>
+          <div id="finalAccuracy" class="font-arcade text-lg font-bold text-cyan-400">100%</div>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3">
+          <div class="text-[11px] text-slate-400">Racha Máxima</div>
+          <div id="finalMaxCombo" class="font-arcade text-lg font-bold text-yellow-400">0x</div>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3">
+          <div class="text-[11px] text-slate-400">Bloques Completados</div>
+          <div id="finalBlocksDone" class="font-arcade text-lg font-bold text-purple-300">5 / 5</div>
+        </div>
+      </div>
+
+      <!-- Grading Formula Breakdown -->
+      <div class="bg-[#060811] border border-slate-800 rounded-xl p-3.5 mb-6 text-xs text-slate-300 flex flex-col sm:flex-row justify-between items-center gap-2">
+        <span>Desglose de Nota (/10):</span>
+        <div class="flex gap-4 font-semibold">
+          <span class="text-cyan-300">Precisión (6.0 pts): <strong id="breakdownAccPts">0.00</strong></span>
+          <span class="text-emerald-300">Velocidad (4.0 pts): <strong id="breakdownSpdPts">0.00</strong></span>
+        </div>
+      </div>
+
+      <button id="btnRestartSession" class="btn-arcade w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 font-arcade font-black text-sm shadow-lg shadow-cyan-500/30">
+        REPETIR FASE 1 (NUEVO INTENTO)
+      </button>
+
+    </div>
+  </div>
+
+  <script>
+    /**
+     * NEONTYPE ARCADE - EdClub Course 3 Lesson 137 Inspired Typing Trainer
+     * Fase 1 Only (Home Row Warmup) - Untimed Graded Exercise (/10)
+     */
+
+    // ==========================================
+    // 1. CURRICULUM DATA (FASE 1 ONLY - HOME ROW)
+    // ==========================================
+    const STAGE_ONE = {
+      title: "Fase 1: Calentamiento y Fila Guía (EdClub 137)",
+      subtitle: "Mantén tus dedos índice en F y J, y el meñique derecho en Ñ. Completa los 5 bloques para lograr tu 10/10.",
+      prompts: [
+        "asdf jklñ asdf jklñ fjdk slañ fjdk slañ la sala salada dada la falda ñañ",
+        "alfa fala sala jala kada lada faja jaja las hadas saladas hallan la sala",
+        "el alba clara deja la sala alta las alhajas fallan al bajar la escala",
+        "cada falda larga baja hasta la sala las hadas cantan en la alameda",
+        "la faja azul ajusta la capa el hada saluda desde la alta cascada"
+      ]
+    };
+
+    // Spanish QWERTY Layout Definition with Finger Zones
+    const KEYBOARD_ROWS = [
+      [
+        { key: '1', label: '1', finger: 'finger-pinky-l' },
+        { key: '2', label: '2', finger: 'finger-ring-l' },
+        { key: '3', label: '3', finger: 'finger-mid-l' },
+        { key: '4', label: '4', finger: 'finger-idx-l' },
+        { key: '5', label: '5', finger: 'finger-idx-l' },
+        { key: '6', label: '6', finger: 'finger-idx-r' },
+        { key: '7', label: '7', finger: 'finger-idx-r' },
+        { key: '8', label: '8', finger: 'finger-mid-r' },
+        { key: '9', label: '9', finger: 'finger-ring-r' },
+        { key: '0', label: '0', finger: 'finger-pinky-r' },
+        { key: "'", label: '?', finger: 'finger-pinky-r' },
+        { key: '¡', label: '¿', finger: 'finger-pinky-r' }
+      ],
+      [
+        { key: 'q', label: 'Q', finger: 'finger-pinky-l' },
+        { key: 'w', label: 'W', finger: 'finger-ring-l' },
+        { key: 'e', label: 'E', finger: 'finger-mid-l' },
+        { key: 'r', label: 'R', finger: 'finger-idx-l' },
+        { key: 't', label: 'T', finger: 'finger-idx-l' },
+        { key: 'y', label: 'Y', finger: 'finger-idx-r' },
+        { key: 'u', label: 'U', finger: 'finger-idx-r' },
+        { key: 'i', label: 'I', finger: 'finger-mid-r' },
+        { key: 'o', label: 'O', finger: 'finger-ring-r' },
+        { key: 'p', label: 'P', finger: 'finger-pinky-r' },
+        { key: '´', label: '´', finger: 'finger-pinky-r' },
+        { key: '+', label: '*', finger: 'finger-pinky-r' }
+      ],
+      [
+        { key: 'a', label: 'A', finger: 'finger-pinky-l' },
+        { key: 's', label: 'S', finger: 'finger-ring-l' },
+        { key: 'd', label: 'D', finger: 'finger-mid-l' },
+        { key: 'f', label: 'F_', finger: 'finger-idx-l' },
+        { key: 'g', label: 'G', finger: 'finger-idx-l' },
+        { key: 'h', label: 'H', finger: 'finger-idx-r' },
+        { key: 'j', label: 'J_', finger: 'finger-idx-r' },
+        { key: 'k', label: 'K', finger: 'finger-mid-r' },
+        { key: 'l', label: 'L', finger: 'finger-ring-r' },
+        { key: 'ñ', label: 'Ñ', finger: 'finger-pinky-r' }
+      ],
+      [
+        { key: 'Shift', label: 'SHIFT', finger: 'finger-pinky-l', wide: 'w-14 sm:w-20' },
+        { key: 'z', label: 'Z', finger: 'finger-pinky-l' },
+        { key: 'x', label: 'X', finger: 'finger-ring-l' },
+        { key: 'c', label: 'C', finger: 'finger-mid-l' },
+        { key: 'v', label: 'V', finger: 'finger-idx-l' },
+        { key: 'b', label: 'B', finger: 'finger-idx-l' },
+        { key: 'n', label: 'N', finger: 'finger-idx-r' },
+        { key: 'm', label: 'M', finger: 'finger-idx-r' },
+        { key: ',', label: ',', finger: 'finger-mid-r' },
+        { key: '.', label: '.', finger: 'finger-ring-r' },
+        { key: '-', label: '-', finger: 'finger-pinky-r' }
+      ],
+      [
+        { key: 'Shift', label: 'SHIFT', finger: 'finger-pinky-l', wide: 'w-14 sm:w-20' },
+        { key: 'z', label: 'Z', finger: 'finger-pinky-l' },
+        { key: 'x', label: 'X', finger: 'finger-ring-l' },
+        { key: 'c', label: 'C', finger: 'finger-mid-l' },
+        { key: 'v', label: 'V', finger: 'finger-idx-l' },
+        { key: 'b', label: 'B', finger: 'finger-idx-l' },
+        { key: 'n', label: 'N', finger: 'finger-idx-r' },
+        { key: 'm', label: 'M', finger: 'finger-idx-r' },
+        { key: ',', label: ';', finger: 'finger-mid-r' },
+        { key: '.', label: ':', finger: 'finger-ring-r' },
+        { key: '-', label: '_', finger: 'finger-pinky-r' }
+      ],
+      [
+        { key: ' ', label: 'ESPACIO', finger: 'finger-thumb', wide: 'w-56 sm:w-80' }
+      ]
+    ];
+
+    const FINGER_NAMES = {
+      'finger-pinky-l': 'Dedo meñique izquierdo',
+      'finger-ring-l': 'Dedo anular izquierdo',
+      'finger-mid-l': 'Dedo medio izquierdo',
+      'finger-idx-l': 'Dedo índice izquierdo',
+      'finger-idx-r': 'Dedo índice derecho',
+      'finger-mid-r': 'Dedo medio derecho',
+      'finger-ring-r': 'Dedo anular derecho',
+      'finger-pinky-r': 'Dedo meñique derecho',
+      'finger-thumb': 'Dedo pulgar'
+    };
+
+    // ==========================================
+    // 2. WEB AUDIO ARCADE SYNTHESIZER (SFX)
+    // ==========================================
+    const sfx = {
+      ctx: null,
+      muted: false,
+      init() {
+        try {
+          if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) this.ctx = new AudioCtx();
+          }
+          if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+          }
+        } catch (err) {
+          console.warn('AudioContext unavailable:', err);
+        }
+      },
+      playHit(combo = 1) {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const pitchBoost = Math.min(combo * 6, 300);
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(520 + pitchBoost, now);
+          osc.frequency.exponentialRampToValueAtTime(840 + pitchBoost, now + 0.055);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.065);
+        } catch (err) {}
+      },
+      playError() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(160, now);
+          osc.frequency.exponentialRampToValueAtTime(75, now + 0.16);
+          gain.gain.setValueAtTime(0.11, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.18);
+        } catch (err) {}
+      },
+      playLevelUp() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const notes = [523.25, 659.25, 783.99, 1046.5];
+          notes.forEach((freq, idx) => {
+            const now = this.ctx.currentTime + idx * 0.075;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now);
+            gain.gain.setValueAtTime(0.09, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.19);
+          });
+        } catch (err) {}
+      }
+    };
+
+    // ==========================================
+    // 3. NEON PARTICLE ENGINE
+    // ==========================================
+    const particleCanvas = document.getElementById('particleCanvas');
+    const pCtx = particleCanvas ? particleCanvas.getContext('2d') : null;
+    let particles = [];
+
+    function resizeParticleCanvas() {
+      if (!particleCanvas) return;
+      particleCanvas.width = window.innerWidth;
+      particleCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeParticleCanvas);
+    resizeParticleCanvas();
+
+    function spawnParticles(x, y, color = '#00f3ff', count = 10) {
+      if (!pCtx) return;
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1.5 + Math.random() * 4.5;
+        particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 1.2,
+          radius: 1.5 + Math.random() * 2.5,
+          color,
+          alpha: 1,
+          decay: 0.025 + Math.random() * 0.03
+        });
+      }
+    }
+
+    function animateParticles() {
+      if (pCtx && particleCanvas) {
+        pCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.08;
+          p.alpha -= p.decay;
+
+          if (p.alpha <= 0) {
+            particles.splice(i, 1);
+            continue;
+          }
+
+          pCtx.save();
+          pCtx.globalAlpha = p.alpha;
+          pCtx.fillStyle = p.color;
+          pCtx.shadowBlur = 10;
+          pCtx.shadowColor = p.color;
+          pCtx.beginPath();
+          pCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          pCtx.fill();
+          pCtx.restore();
+        }
+      }
+      requestAnimationFrame(animateParticles);
+    }
+
+    // ==========================================
+    // 4. GAME STATE & GRADING LOGIC (UNTIMED FASE 1)
+    // ==========================================
+    const TARGET_WPM_FOR_FULL_SCORE = 35; // 35 WPM achieves full 4.0 speed points
+
+    const state = {
+      isRunning: false,
+      isPaused: false,
+      isFinished: false,
+      startTimeMs: null,
+      pausedAccumulatedMs: 0,
+      lastPauseStartMs: null,
+
+      promptIndex: 0,
+      customPrompts: null,
+
+      currentText: "",
+      charIndex: 0,
+      charStatuses: [], // 'pending' | 'correct' | 'wrong'
+
+      totalKeystrokes: 0,
+      correctKeystrokes: 0,
+      errorCount: 0,
+      combo: 0,
+      maxCombo: 0,
+      blocksCompleted: 0
+    };
+
+    // DOM References
+    const elHudGrade = document.getElementById('hudGrade');
+    const elHudWpm = document.getElementById('hudWpm');
+    const elHudAccuracy = document.getElementById('hudAccuracy');
+    const elHudCombo = document.getElementById('hudCombo');
+    const elSessionProgress = document.getElementById('sessionProgressBar');
+
+    const elStageBadge = document.getElementById('stageBadge');
+    const elStageTitle = document.getElementById('stageTitle');
+    const elStageSubtitle = document.getElementById('stageSubtitle');
+
+    const elTypingArena = document.getElementById('typingArena');
+    const elTextDisplay = document.getElementById('textDisplay');
+    const elStartOverlay = document.getElementById('startOverlay');
+    const elPauseOverlay = document.getElementById('pauseOverlay');
+    const elNextKeyBadge = document.getElementById('nextKeyBadge');
+    const elFingerHintText = document.getElementById('fingerHintText');
+    const elBlockCounter = document.getElementById('blockCounter');
+    const elErrorCounter = document.getElementById('errorCounter');
+    const elTotalCharsCounter = document.getElementById('totalCharsCounter');
+    const elVirtualKeyboard = document.getElementById('virtualKeyboard');
+    const elHiddenInput = document.getElementById('hiddenMobileInput');
+
+    // Render Virtual Spanish QWERTY Keyboard
+    function buildVirtualKeyboard() {
+      elVirtualKeyboard.innerHTML = '';
+      KEYBOARD_ROWS.forEach(row => {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'flex justify-center gap-1 sm:gap-1.5';
+        row.forEach(k => {
+          const btn = document.createElement('div');
+          const widthClass = k.wide || 'w-7 sm:w-11 md:w-12';
+          btn.className = `kbd-key h-9 sm:h-11 text-xs sm:text-sm ${widthClass} ${k.finger}`;
+          btn.dataset.key = k.key.toLowerCase();
+          btn.dataset.finger = k.finger;
+          btn.textContent = k.label;
+          rowDiv.appendChild(btn);
+        });
+        elVirtualKeyboard.appendChild(rowDiv);
+      });
+    }
+
+    // Highlight Next Target Key on Virtual Keyboard
+    function updateKeyboardTarget() {
+      document.querySelectorAll('.kbd-key').forEach(el => el.classList.remove('target-key'));
+      const expectedChar = state.currentText[state.charIndex];
+      if (!expectedChar) return;
+
+      // Normalize accented characters for visual keyboard highlighting
+      const baseMap = { 'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ü': 'u', '¿': '¡', '?': "'", ';': ',', ':': '.', '_': '-', '*': '+' };
+      const lower = expectedChar.toLowerCase();
+      const lookupKey = baseMap[lower] || lower;
+
+      const targetEl = document.querySelector(`.kbd-key[data-key="${CSS.escape(lookupKey)}"]`);
+      if (targetEl) {
+        targetEl.classList.add('target-key');
+        const fingerClass = targetEl.dataset.finger;
+        elFingerHintText.textContent = `• ${FINGER_NAMES[fingerClass] || 'Posición base'}`;
+      }
+
+      // If uppercase, also highlight Shift
+      if (expectedChar !== expectedChar.toLowerCase() && expectedChar !== ' ') {
+        const shiftEl = document.querySelector(`.kbd-key[data-key="shift"]`);
+        if (shiftEl) shiftEl.classList.add('target-key');
+      }
+
+      elNextKeyBadge.textContent = expectedChar === ' ' ? 'ESPACIO' : expectedChar;
+    }
+
+    // Flash pressed key visually
+    function flashVirtualKey(char, isCorrect) {
+      const baseMap = { 'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ü': 'u' };
+      const lookup = baseMap[char.toLowerCase()] || char.toLowerCase();
+      const keyEl = document.querySelector(`.kbd-key[data-key="${CSS.escape(lookup)}"]`);
+      if (!keyEl) return;
+
+      const cls = isCorrect ? 'hit-correct' : 'hit-wrong';
+      keyEl.classList.add(cls);
+      setTimeout(() => keyEl.classList.remove(cls), 140);
+    }
+
+    // Load Prompt into Teleprompter
+    function getActivePromptsList() {
+      return (state.customPrompts && state.customPrompts.length > 0)
+        ? state.customPrompts
+        : STAGE_ONE.prompts;
+    }
+
+    function loadPrompt() {
+      const promptsList = getActivePromptsList();
+      if (state.customPrompts && state.customPrompts.length > 0) {
+        state.currentText = promptsList[state.promptIndex];
+        elStageBadge.textContent = "TEXTO PROPIO";
+        elStageTitle.textContent = "Texto Cargado por el Estudiante (EdClub)";
+        elStageSubtitle.textContent = "Completa todo el texto con precisión para recibir tu nota sobre 10.";
+      } else {
+        state.currentText = promptsList[state.promptIndex];
+        elStageBadge.textContent = "FASE 1 • ÚNICA";
+        elStageTitle.textContent = STAGE_ONE.title;
+        elStageSubtitle.textContent = STAGE_ONE.subtitle;
+      }
+
+      state.charIndex = 0;
+      state.charStatuses = new Array(state.currentText.length).fill('pending');
+      renderTextDisplay();
+      updateKeyboardTarget();
+    }
+
+    function renderTextDisplay() {
+      elTextDisplay.innerHTML = '';
+      for (let i = 0; i < state.currentText.length; i++) {
+        const span = document.createElement('span');
+        span.textContent = state.currentText[i];
+        span.className = 'char-box ';
+        if (i === state.charIndex) {
+          span.className += 'char-current';
+          span.id = 'activeCharCursor';
+        } else if (state.charStatuses[i] === 'correct') {
+          span.className += 'char-correct';
+        } else if (state.charStatuses[i] === 'wrong') {
+          span.className += 'char-wrong';
+        } else {
+          span.className += 'char-pending';
+        }
+        elTextDisplay.appendChild(span);
+      }
+    }
+
+    // Calculate Real-time Grade out of 10.00
+    function getActiveElapsedSeconds() {
+      if (!state.startTimeMs) return 0;
+      const now = state.isPaused && state.lastPauseStartMs ? state.lastPauseStartMs : performance.now();
+      return Math.max(0, (now - state.startTimeMs - state.pausedAccumulatedMs) / 1000);
+    }
+
+    function calculateMetrics() {
+      // Accuracy %
+      const accuracy = state.totalKeystrokes === 0
+        ? 100
+        : Math.max(0, (state.correctKeystrokes / state.totalKeystrokes) * 100);
+
+      // WPM (Words Per Minute = (correctChars / 5) / activeMinutes)
+      const activeSeconds = getActiveElapsedSeconds();
+      const minutes = Math.max(activeSeconds / 60, 1 / 60); // avoid div by 0 on very first keystroke
+      const wpm = state.correctKeystrokes === 0
+        ? 0
+        : Math.round((state.correctKeystrokes / 5) / minutes);
+
+      // Grade out of 10.00:
+      // 6.0 points from Accuracy
+      // 4.0 points from Speed (reaching TARGET_WPM_FOR_FULL_SCORE gives full 4.0 pts)
+      const accPoints = (accuracy / 100) * 6.0;
+      const speedRatio = Math.min(wpm / TARGET_WPM_FOR_FULL_SCORE, 1.0);
+      const speedPoints = state.totalKeystrokes === 0 ? 4.0 : speedRatio * 4.0;
+
+      const totalGrade = Math.min(10.0, Math.max(0.0, accPoints + speedPoints));
+
+      return {
+        accuracy,
+        wpm,
+        accPoints,
+        speedPoints,
+        totalGrade
+      };
+    }
+
+    function updateHUD() {
+      const promptsList = getActivePromptsList();
+      const totalBlocks = promptsList.length;
+      const currentBlockNum = Math.min(state.promptIndex + 1, totalBlocks);
+
+      // Calculate exact character progress across all blocks of Fase 1
+      const totalCharsAllBlocks = promptsList.reduce((acc, p) => acc + p.length, 0);
+      const completedCharsPriorBlocks = promptsList
+        .slice(0, state.promptIndex)
+        .reduce((acc, p) => acc + p.length, 0);
+      const currentTotalProgressChars = completedCharsPriorBlocks + state.charIndex;
+      const pctDone = totalCharsAllBlocks > 0
+        ? Math.min(100, (currentTotalProgressChars / totalCharsAllBlocks) * 100)
+        : 0;
+      elSessionProgress.style.width = `${pctDone}%`;
+
+      const metrics = calculateMetrics();
+      elHudGrade.textContent = metrics.totalGrade.toFixed(2);
+      elHudWpm.textContent = metrics.wpm;
+      elHudAccuracy.textContent = `${metrics.accuracy.toFixed(1)}%`;
+      elHudCombo.textContent = state.combo;
+
+      elBlockCounter.textContent = `${currentBlockNum} / ${totalBlocks}`;
+      elErrorCounter.textContent = state.errorCount;
+      elTotalCharsCounter.textContent = state.correctKeystrokes;
+    }
+
+    // Start Practice Session (No Countdown Timer)
+    function startSession() {
+      if (state.isRunning || state.isFinished) return;
+      state.isRunning = true;
+      state.isPaused = false;
+      state.startTimeMs = performance.now();
+      state.pausedAccumulatedMs = 0;
+      state.lastPauseStartMs = null;
+
+      elStartOverlay.classList.add('hidden');
+      elPauseOverlay.classList.add('hidden');
+      sfx.init();
+      elHiddenInput.focus();
+    }
+
+    function togglePause() {
+      if (!state.isRunning || state.isFinished) return;
+      state.isPaused = !state.isPaused;
+      if (state.isPaused) {
+        state.lastPauseStartMs = performance.now();
+        elPauseOverlay.classList.remove('hidden');
+      } else {
+        if (state.lastPauseStartMs) {
+          state.pausedAccumulatedMs += performance.now() - state.lastPauseStartMs;
+          state.lastPauseStartMs = null;
+        }
+        elPauseOverlay.classList.add('hidden');
+        elHiddenInput.focus();
+      }
+    }
+
+    // Process Character Input
+    function handleTypedChar(char) {
+      if (state.isFinished || state.isPaused) return;
+      if (!state.isRunning) {
+        startSession();
+      }
+
+      const expected = state.currentText[state.charIndex];
+      if (!expected) return;
+
+      state.totalKeystrokes++;
+
+      const activeCursorEl = document.getElementById('activeCharCursor');
+      const rect = activeCursorEl ? activeCursorEl.getBoundingClientRect() : null;
+
+      if (char === expected) {
+        // Correct Keystroke
+        state.correctKeystrokes++;
+        state.combo++;
+        if (state.combo > state.maxCombo) state.maxCombo = state.combo;
+
+        state.charStatuses[state.charIndex] = 'correct';
+        state.charIndex++;
+
+        sfx.playHit(state.combo);
+        flashVirtualKey(char, true);
+
+        if (rect) {
+          const burstColor = state.combo >= 25 ? '#ff00ff' : (state.combo >= 10 ? '#39ff14' : '#00f3ff');
+          spawnParticles(rect.left + rect.width / 2, rect.top + rect.height / 2, burstColor, 8);
+        }
+
+        // Check if current text block finished
+        if (state.charIndex >= state.currentText.length) {
+          sfx.playLevelUp();
+          state.blocksCompleted++;
+          state.promptIndex++;
+
+          const promptsList = getActivePromptsList();
+          // Automatically finish and show final /10 grade when all Fase 1 blocks are completed
+          if (state.promptIndex >= promptsList.length) {
+            updateHUD();
+            finishSession();
+            return;
+          }
+
+          loadPrompt();
+        } else {
+          renderTextDisplay();
+          updateKeyboardTarget();
+        }
+      } else {
+        // Mistake
+        state.errorCount++;
+        state.combo = 0;
+        state.charStatuses[state.charIndex] = 'wrong';
+
+        sfx.playError();
+        flashVirtualKey(char, false);
+
+        if (rect) {
+          spawnParticles(rect.left + rect.width / 2, rect.top + rect.height / 2, '#ff2a55', 12);
+        }
+
+        // Trigger screen shake on arena
+        elTypingArena.classList.remove('shake-error');
+        void elTypingArena.offsetWidth; // reflow
+        elTypingArena.classList.add('shake-error');
+
+        renderTextDisplay();
+      }
+
+      updateHUD();
+    }
+
+    // Finish Session & Show /10 Scorecard
+    function finishSession() {
+      if (state.isFinished) return;
+      state.isFinished = true;
+      state.isRunning = false;
+      sfx.playLevelUp();
+
+      const m = calculateMetrics();
+      const grade = m.totalGrade;
+      const totalBlocks = getActivePromptsList().length;
+
+      document.getElementById('finalGradeValue').textContent = grade.toFixed(2);
+      document.getElementById('finalWpm').textContent = `${m.wpm} PPM`;
+      document.getElementById('finalAccuracy').textContent = `${m.accuracy.toFixed(1)}%`;
+      document.getElementById('finalMaxCombo').textContent = `${state.maxCombo}x`;
+      document.getElementById('finalBlocksDone').textContent = `${state.blocksCompleted} / ${totalBlocks}`;
+
+      document.getElementById('breakdownAccPts').textContent = `${m.accPoints.toFixed(2)} / 6.00`;
+      document.getElementById('breakdownSpdPts').textContent = `${m.speedPoints.toFixed(2)} / 4.00`;
+
+      // Pass / Fail Badge (>= 7.00 Aprobado)
+      const passBadge = document.getElementById('finalPassBadge');
+      if (grade >= 7.0) {
+        passBadge.textContent = "APROBADO • EXCELENTE";
+        passBadge.className = "mt-2 px-3 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400";
+      } else {
+        passBadge.textContent = "REQUIERE MÁS PRÁCTICA (< 7.00)";
+        passBadge.className = "mt-2 px-3 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-400";
+      }
+
+      // Rank Letter
+      let rank = 'D';
+      let rankTitle = 'Novato en Entrenamiento';
+      if (grade >= 9.5) { rank = 'S'; rankTitle = 'Leyenda Cibernética (10/10)'; }
+      else if (grade >= 8.5) { rank = 'A'; rankTitle = 'Piloto de Élite'; }
+      else if (grade >= 7.0) { rank = 'B'; rankTitle = 'Operador Certificado'; }
+      else if (grade >= 5.0) { rank = 'C'; rankTitle = 'Aprendiz de Teclado'; }
+
+      document.getElementById('finalRankLetter').textContent = rank;
+      document.getElementById('finalRankTitle').textContent = rankTitle;
+
+      document.getElementById('resultsModal').classList.remove('hidden');
+    }
+
+    function resetSession() {
+      state.isRunning = false;
+      state.isPaused = false;
+      state.isFinished = false;
+      state.startTimeMs = null;
+      state.pausedAccumulatedMs = 0;
+      state.lastPauseStartMs = null;
+      state.promptIndex = 0;
+      state.totalKeystrokes = 0;
+      state.correctKeystrokes = 0;
+      state.errorCount = 0;
+      state.combo = 0;
+      state.maxCombo = 0;
+      state.blocksCompleted = 0;
+
+      document.getElementById('resultsModal').classList.add('hidden');
+      elStartOverlay.classList.remove('hidden');
+      elPauseOverlay.classList.add('hidden');
+
+      loadPrompt();
+      updateHUD();
+    }
+
+    // ==========================================
+    // 5. EVENT LISTENERS
+    // ==========================================
+    document.addEventListener('keydown', (e) => {
+      // Ignore if typing inside custom text modal
+      if (!document.getElementById('customTextModal').classList.contains('hidden')) return;
+      if (!document.getElementById('resultsModal').classList.contains('hidden')) return;
+
+      if (e.key === 'Escape') {
+        togglePause();
+        return;
+      }
+
+      // Prevent spacebar scrolling
+      if (e.key === ' ') {
+        e.preventDefault();
+      }
+
+      // Handle printable single characters (including accents & ñ)
+      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        handleTypedChar(e.key);
+      }
+    });
+
+    // Mobile virtual keyboard fallback
+    elHiddenInput.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (val && val.length > 0) {
+        const lastChar = val[val.length - 1];
+        handleTypedChar(lastChar);
+        e.target.value = '';
+      }
+    });
+
+    elTypingArena.addEventListener('click', () => {
+      elHiddenInput.focus();
+      if (!state.isRunning && !state.isFinished) {
+        startSession();
+      }
+    });
+
+    document.getElementById('btnStartTrigger').addEventListener('click', (e) => {
+      e.stopPropagation();
+      startSession();
+    });
+
+    document.getElementById('btnPause').addEventListener('click', togglePause);
+    document.getElementById('btnResume').addEventListener('click', togglePause);
+    document.getElementById('btnFinish').addEventListener('click', finishSession);
+    document.getElementById('btnRestartSession').addEventListener('click', resetSession);
+
+    // Sound Toggle
+    document.getElementById('btnSound').addEventListener('click', () => {
+      sfx.muted = !sfx.muted;
+      document.getElementById('iconSoundOn').classList.toggle('hidden', sfx.muted);
+      document.getElementById('iconSoundOff').classList.toggle('hidden', !sfx.muted);
+    });
+
+    // Custom Lesson Text Modal
+    const customModal = document.getElementById('customTextModal');
+    document.getElementById('btnCustomText').addEventListener('click', () => {
+      if (state.isRunning && !state.isPaused) togglePause();
+      customModal.classList.remove('hidden');
+      document.getElementById('customTextInput').focus();
+    });
+
+    document.getElementById('btnCancelCustom').addEventListener('click', () => {
+      customModal.classList.add('hidden');
+    });
+
+    document.getElementById('btnApplyCustom').addEventListener('click', () => {
+      const raw = document.getElementById('customTextInput').value.trim();
+      if (raw.length > 0) {
+        // Split into manageable chunks of ~110 chars preserving words
+        const words = raw.replace(/\s+/g, ' ').split(' ');
+        const chunks = [];
+        let current = '';
+        words.forEach(w => {
+          if ((current + ' ' + w).trim().length > 105) {
+            chunks.push(current.trim());
+            current = w;
+          } else {
+            current = (current + ' ' + w).trim();
+          }
+        });
+        if (current) chunks.push(current);
+
+        state.customPrompts = chunks;
+        state.promptIndex = 0;
+        state.blocksCompleted = 0;
+        loadPrompt();
+        updateHUD();
+      }
+      customModal.classList.add('hidden');
+      if (state.isPaused) togglePause();
+    });
+
+    // Initialize Application on Load
+    window.onload = function () {
+      buildVirtualKeyboard();
+      loadPrompt();
+      updateHUD();
+      animateParticles();
+    };
+  </script>
+</body>
+</html>
